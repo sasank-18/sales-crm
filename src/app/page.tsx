@@ -13,7 +13,8 @@ import {
   Calendar, 
   FileText, 
   X,
-  TrendingUp
+  TrendingUp,
+  Sparkles
 } from 'lucide-react';
 import styles from './page.module.css';
 import InteractiveChart from '@/components/InteractiveChart';
@@ -319,7 +320,23 @@ export default function Dashboard() {
 
                   return (
                     <tr key={deal.id}>
-                      <td className={styles.dealName}>{deal.title}</td>
+                      <td className={styles.dealName}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>{deal.title}</span>
+                          {(() => {
+                            const contact = contacts.find(c => c.company === deal.company);
+                            if (contact) {
+                              return (
+                                <span className="badge badge-purple" style={{ fontSize: '0.62rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Sparkles size={8} />
+                                  AI {contact.aiScore}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </td>
                       <td>{deal.company}</td>
                       <td className={styles.dealValue}>${deal.value.toLocaleString()}</td>
                       <td>

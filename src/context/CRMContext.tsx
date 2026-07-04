@@ -16,6 +16,8 @@ export interface Contact {
   lastInteraction: string;
   tags: string[];
   notes: string;
+  aiScore: number;
+  scoreFactors: string[];
 }
 
 export interface Deal {
@@ -44,7 +46,7 @@ interface CRMContextType {
   contacts: Contact[];
   deals: Deal[];
   activities: Activity[];
-  addContact: (contact: Omit<Contact, 'id' | 'lastInteraction'>) => void;
+  addContact: (contact: Omit<Contact, 'id' | 'lastInteraction' | 'aiScore' | 'scoreFactors'>) => void;
   updateContact: (contact: Contact) => void;
   deleteContact: (id: string) => void;
   addDeal: (deal: Omit<Deal, 'id' | 'lastActivity'>) => void;
@@ -70,7 +72,14 @@ const initialContacts: Contact[] = [
     value: 1200000,
     lastInteraction: '2026-07-03',
     tags: ['VIP', 'Enterprise', 'Tech'],
-    notes: 'Very interested in high-density energy solutions. Prefers email updates during off-hours.'
+    notes: 'Very interested in high-density energy solutions. Prefers email updates during off-hours.',
+    aiScore: 98,
+    scoreFactors: [
+      'Email response time < 15 mins',
+      'Recent high-value Won deal',
+      'Decision maker CEO profile',
+      '3 interactions logged this week'
+    ]
   },
   {
     id: 'c2',
@@ -83,7 +92,14 @@ const initialContacts: Contact[] = [
     value: 850000,
     lastInteraction: '2026-07-02',
     tags: ['VIP', 'Defense', 'Strategic'],
-    notes: 'Discussed tactical satellite networking. Demands complete data isolation and private cloud options.'
+    notes: 'Discussed tactical satellite networking. Demands complete data isolation and private cloud options.',
+    aiScore: 89,
+    scoreFactors: [
+      'Active negotiation in progress',
+      'High average email open rate',
+      'Strategic level deal partner',
+      'Completed product system demo'
+    ]
   },
   {
     id: 'c3',
@@ -96,7 +112,14 @@ const initialContacts: Contact[] = [
     value: 150000,
     lastInteraction: '2026-06-28',
     tags: ['Security', 'AI Systems'],
-    notes: 'Audit of automated systems requested. Extremely cautious about AI decision-making elements.'
+    notes: 'Audit of automated systems requested. Extremely cautious about AI decision-making elements.',
+    aiScore: 45,
+    scoreFactors: [
+      'Lengthy delay in email response',
+      'Budget constraints highlighted',
+      'Low probability lead rating',
+      'Security audit pending validation'
+    ]
   },
   {
     id: 'c4',
@@ -109,7 +132,14 @@ const initialContacts: Contact[] = [
     value: 450000,
     lastInteraction: '2026-07-04',
     tags: ['BioTech', 'Large Account'],
-    notes: 'Follow-up regarding replica analytics. Impressed with database scalability and user permissions.'
+    notes: 'Follow-up regarding replica analytics. Impressed with database scalability and user permissions.',
+    aiScore: 82,
+    scoreFactors: [
+      'Highly engaged in product demo',
+      'Frequent contact visit logs',
+      'Decision maker CEO profile',
+      'Requested follow-up documents'
+    ]
   },
   {
     id: 'c5',
@@ -122,7 +152,14 @@ const initialContacts: Contact[] = [
     value: 620000,
     lastInteraction: '2026-07-01',
     tags: ['BioTech', 'Fast-Track'],
-    notes: 'Inquired about molecular modeling processing capacities. Deal depends on sub-millisecond response latency.'
+    notes: 'Inquired about molecular modeling processing capacities. Deal depends on sub-millisecond response latency.',
+    aiScore: 71,
+    scoreFactors: [
+      'Active proposal stage deal',
+      'High budget capacity verified',
+      'Technical requirements pending review',
+      'Score restricted by timing constraints'
+    ]
   },
   {
     id: 'c6',
@@ -135,7 +172,14 @@ const initialContacts: Contact[] = [
     value: 95000,
     lastInteraction: '2026-06-25',
     tags: ['Logistics', 'Mid-Market'],
-    notes: 'Expressed interest in cargo tracking dashboard templates. Budget is flexible if integration is instant.'
+    notes: 'Expressed interest in cargo tracking dashboard templates. Budget is flexible if integration is instant.',
+    aiScore: 58,
+    scoreFactors: [
+      'Initial inquiry response logged',
+      'Mid-market budget limitations',
+      'Pending direct meeting scheduler',
+      'Interaction gap > 8 days'
+    ]
   }
 ];
 
@@ -339,11 +383,17 @@ export const CRMProvider = ({ children }: { children: ReactNode }) => {
 
   // --- ACTIONS ---
 
-  const addContact = (newContact: Omit<Contact, 'id' | 'lastInteraction'>) => {
+  const addContact = (newContact: Omit<Contact, 'id' | 'lastInteraction' | 'aiScore' | 'scoreFactors'>) => {
     const contact: Contact = {
       ...newContact,
       id: `c_${Date.now()}`,
-      lastInteraction: new Date().toISOString().split('T')[0]
+      lastInteraction: new Date().toISOString().split('T')[0],
+      aiScore: Math.floor(Math.random() * 30) + 50, // default random 50-80
+      scoreFactors: [
+        'Initial relationship established',
+        'Lead scoring model initialized',
+        'Awaiting historical activity data'
+      ]
     };
     setContacts(prev => [contact, ...prev]);
   };

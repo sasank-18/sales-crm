@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useCRM, Deal } from '@/context/CRMContext';
-import { Plus, X, Calendar, DollarSign, User } from 'lucide-react';
+import { Plus, X, Calendar, Download, AlertTriangle } from 'lucide-react';
 import styles from './page.module.css';
 
 const STAGES: Deal['stage'][] = ['Lead', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
@@ -81,6 +81,39 @@ export default function PipelineBoard() {
     setIsModalOpen(false);
   };
 
+  // Deal Inactivity check (Current date is simulated to be 2026-07-04)
+  const getDealInactivityDays = (lastActivityDate: string) => {
+    const currentDate = new Date('2026-07-04');
+    const activityDate = new Date(lastActivityDate);
+    const diffTime = Math.abs(currentDate.getTime() - activityDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Deals CSV Export
+  const exportToCSV = () => {
+    const headers = ['Deal Title', 'Company', 'Value', 'Stage', 'Probability (%)', 'Owner', 'Expected Close', 'Last Activity'];
+    const rows = deals.map(d => [
+      `"${d.title.replace(/"/g, '""')}"`,
+      `"${d.company.replace(/"/g, '""')}"`,
+      d.value,
+      d.stage,
+      d.probability,
+      `"${d.owner}"`,
+      d.expectedCloseDate,
+      d.lastActivity
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'crm_pipeline_deals.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -97,14 +130,25 @@ export default function PipelineBoard() {
           <h2>Deals Board</h2>
           <p>Drag and drop deals across stages to update their progress and probability.</p>
         </div>
-        <button 
-          className="btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          onClick={() => setIsModalOpen(true)}
-        >
-          <Plus size={16} color="#000" strokeWidth={2.5} />
-          Add Deal
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            onClick={exportToCSV}
+            title="Download CSV"
+          >
+            <Download size={15} />
+            Export CSV
+          </button>
+          <button 
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus size={16} color="#000" strokeWidth={2.5} />
+            Add Deal
+          </button>
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -136,42 +180,60 @@ export default function PipelineBoard() {
               </div>
 
               <div className={styles.cardsContainer}>
-                {stageDeals.map((deal) => (
-                  <div
-                    key={deal.id}
-                    className={styles.dealCard}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, deal.id)}
-                  >
-                    <div>
-                      <div className={styles.dealTitle}>{deal.title}</div>
-                      <div className={styles.dealCompany}>{deal.company}</div>
-                    </div>
+                {stageDeals.map((deal) => {
+                  const inactiveDays = getDealInactivityDays(deal.lastActivity);
+                  const isStale = inactiveDays > 2 && deal.stage !== 'Won' && deal.stage !== 'Lost';
+                  const isDanger = inactiveDays > 5 && deal.stage !== 'Won' && deal.stage !== 'Lost';
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className={styles.dealValueText}>
-                        ${deal.value.toLocaleString()}
-                      </span>
-                      <span className={`badge ${
-                        deal.stage === 'Won' ? 'badge-success' : 
-                        deal.stage === 'Lost' ? 'badge-danger' : 
-                        deal.stage === 'Negotiation' ? 'badge-purple' : 
-                        'badge-cyan'
-                      }`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
-                        {deal.probability}%
-                      </span>
-                    </div>
+                  return (
+                    <div
+                      key={deal.id}
+                      className={styles.dealCard}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, deal.id)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div>
+                          <div className={styles.dealTitle}>{deal.title}</div>
+                          <div className={styles.dealCompany}>{deal.company}</div>
+                        </div>
 
-                    <div className={styles.cardFooter}>
-                      <span className={styles.dateLabel} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Calendar size={11} /> {deal.expectedCloseDate}
-                      </span>
-                      <div className={styles.cardAvatar} title={deal.owner}>
-                        {getInitials(deal.owner)}
+                        {/* Stale alert indicator */}
+                        {isStale && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '2px 6px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <span className={isDanger ? "pulseDangerIndicator" : "pulseWarningIndicator"} />
+                            <span style={{ fontSize: '0.62rem', color: isDanger ? 'var(--clr-danger)' : 'var(--clr-warning)', fontWeight: 700 }}>
+                              {inactiveDays}d
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className={styles.dealValueText}>
+                          ${deal.value.toLocaleString()}
+                        </span>
+                        <span className={`badge ${
+                          deal.stage === 'Won' ? 'badge-success' : 
+                          deal.stage === 'Lost' ? 'badge-danger' : 
+                          deal.stage === 'Negotiation' ? 'badge-purple' : 
+                          'badge-cyan'
+                        }`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                          {deal.probability}%
+                        </span>
+                      </div>
+
+                      <div className={styles.cardFooter}>
+                        <span className={styles.dateLabel} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={11} /> {deal.expectedCloseDate}
+                        </span>
+                        <div className={styles.cardAvatar} title={deal.owner}>
+                          {getInitials(deal.owner)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {stageDeals.length === 0 && (
                   <div style={{ 
@@ -298,4 +360,3 @@ export default function PipelineBoard() {
     </>
   );
 }
-

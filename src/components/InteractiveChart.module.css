@@ -1,0 +1,122 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chartWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.gridLine {
+  stroke: rgba(255, 255, 255, 0.03);
+  stroke-width: 1px;
+}
+
+.yLabel {
+  fill: var(--text-muted);
+  font-size: 10px;
+  text-anchor: end;
+}
+
+.xLabel {
+  fill: var(--text-muted);
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+.guideLine {
+  stroke: rgba(0, 242, 254, 0.2);
+  stroke-width: 1px;
+  stroke-dasharray: 4 4;
+}
+
+.dot {
+  fill: var(--bg-secondary);
+  stroke: var(--clr-cyan);
+  stroke-width: 2px;
+  transition: all var(--transition-fast);
+}
+
+.activeDot {
+  fill: var(--clr-cyan);
+  stroke: #fff;
+  stroke-width: 2px;
+  filter: drop-shadow(0 0 6px var(--clr-cyan));
+}
+
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(11, 15, 25, 0.95);
+  border: 1px solid var(--clr-cyan);
+  box-shadow: 0 4px 20px rgba(0, 242, 254, 0.15);
+  border-radius: var(--border-radius-sm);
+  padding: 10px 12px;
+  pointer-events: none;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 130px;
+  transition: left 0.1s ease-out, top 0.1s ease-out;
+}
+
+.tooltipTitle {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.tooltipVal {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+}
+
+.tooltipSub {
+  font-size: 0.75rem;
+  color: var(--clr-cyan);
+}

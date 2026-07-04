@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
 import "./globals.css";
-import styles from "./layout.module.css";
-import Sidebar from "@/components/Sidebar";
+import ClientShell from "@/components/ClientShell";
 import { CRMProvider } from "@/context/CRMContext";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -31,12 +30,9 @@ export default function RootLayout({
     <html lang="en" className={`${plusJakarta.variable} ${outfit.variable}`}>
       <body>
         <CRMProvider>
-          <div className={styles.container}>
-            <Sidebar />
-            <main className={styles.main}>
-              {children}
-            </main>
-          </div>
+          <ClientShell>
+            {children}
+          </ClientShell>
         </CRMProvider>
       </body>
     </html>

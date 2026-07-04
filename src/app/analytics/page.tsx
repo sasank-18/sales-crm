@@ -1,45 +1,53 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCRM, Deal } from '@/context/CRMContext';
-import { TrendingUp, DollarSign, Target, BarChart2, Award } from 'lucide-react';
+import { TrendingUp, DollarSign, BarChart2, Filter } from 'lucide-react';
 import styles from './page.module.css';
 
 export default function AnalyticsDashboard() {
   const { deals } = useCRM();
 
+  // Interactive Forecast State
+  const [probabilityThreshold, setProbabilityThreshold] = useState(0);
+
   // --- TOP STATS CALCULATIONS ---
 
-  // 1. Total Pipeline Value
+  // Filter active deals based on probability threshold
   const activeDeals = deals.filter(d => d.stage !== 'Won' && d.stage !== 'Lost');
-  const pipelineValue = activeDeals.reduce((sum, d) => sum + d.value, 0);
+  const filteredActiveDeals = activeDeals.filter(d => d.probability >= probabilityThreshold);
+  
+  // 1. Total Pipeline Value (Filtered)
+  const pipelineValue = filteredActiveDeals.reduce((sum, d) => sum + d.value, 0);
 
-  // 2. Expected (Weighted) Revenue
-  // Sum of (Deal Value * Probability)
-  const expectedRevenue = activeDeals.reduce((sum, d) => sum + (d.value * (d.probability / 100)), 0);
+  // 2. Expected (Weighted) Revenue (Filtered)
+  const expectedRevenue = filteredActiveDeals.reduce((sum, d) => sum + (d.value * (d.probability / 100)), 0);
 
-  // 3. Average Deal Size
-  const allDealsCount = deals.length;
-  const totalValue = deals.reduce((sum, d) => sum + d.value, 0);
+  // 3. Average Deal Size (All deals satisfying threshold)
+  const filteredAllDeals = deals.filter(d => d.stage === 'Won' || d.stage === 'Lost' || d.probability >= probabilityThreshold);
+  const allDealsCount = filteredAllDeals.length;
+  const totalValue = filteredAllDeals.reduce((sum, d) => sum + d.value, 0);
   const avgDealSize = allDealsCount > 0 ? Math.round(totalValue / allDealsCount) : 0;
 
-  // 4. Closed-Won Value
+  // 4. Closed-Won Value (Unfiltered, represents static closed goals)
   const wonDeals = deals.filter(d => d.stage === 'Won');
   const wonValue = wonDeals.reduce((sum, d) => sum + d.value, 0);
 
   // --- FUNNEL STAGE CALCULATIONS ---
-  // A deal is assumed to have progressed through all stages up to its current stage
-  // Lead -> Qualified -> Proposal -> Negotiation -> Won
+  // A deal qualifies for the funnel if it's Won or satisfies the probability threshold
+  const filteredDealsForFunnel = deals.filter(d => {
+    if (d.stage === 'Lost') return false;
+    if (d.stage === 'Won') return true; // Won deals are 100% and always included
+    return d.probability >= probabilityThreshold;
+  });
+
   const getStageCumulativeCount = (stage: Deal['stage']) => {
     const stageOrder: Deal['stage'][] = ['Lead', 'Qualified', 'Proposal', 'Negotiation', 'Won'];
     const targetIdx = stageOrder.indexOf(stage);
     
     if (targetIdx === -1) return 0;
 
-    // A deal counts for a stage if its current stage index in stageOrder is >= targetIdx
-    return deals.filter(d => {
-      // Exclude lost deals from the successful progression funnel
-      if (d.stage === 'Lost') return false;
+    return filteredDealsForFunnel.filter(d => {
       const currentIdx = stageOrder.indexOf(d.stage);
       return currentIdx >= targetIdx;
     }).length;
@@ -56,7 +64,7 @@ export default function AnalyticsDashboard() {
   };
 
   const funnelStages = [
-    { name: 'Leads Created', count: leadCount, percent: getPercentage(leadCount), color: '#3b82f6' },
+    { name: 'Leads Qualified', count: leadCount, percent: getPercentage(leadCount), color: '#3b82f6' },
     { name: 'Qualified Stage', count: qualifiedCount, percent: getPercentage(qualifiedCount), color: '#6366f1' },
     { name: 'Proposal Offered', count: proposalCount, percent: getPercentage(proposalCount), color: '#a855f7' },
     { name: 'Negotiation', count: negotiationCount, percent: getPercentage(negotiationCount), color: '#ec4899' },
@@ -64,7 +72,6 @@ export default function AnalyticsDashboard() {
   ];
 
   // --- REPRESENTATIVE LEADERBOARD CALCULATIONS ---
-  // Identify unique reps in the system
   const representatives = ['Alex Mercer', 'Sarah Chen', 'Marcus Vance'];
 
   const repLeaderboard = representatives.map(repName => {
@@ -73,7 +80,8 @@ export default function AnalyticsDashboard() {
     const repLostDeals = repDeals.filter(d => d.stage === 'Lost');
     
     const wonValue = repWonDeals.reduce((sum, d) => sum + d.value, 0);
-    const activeDealsCount = repDeals.filter(d => d.stage !== 'Won' && d.stage !== 'Lost').length;
+    // Active deals satisfying probability filter
+    const activeDealsCount = repDeals.filter(d => d.stage !== 'Won' && d.stage !== 'Lost' && d.probability >= probabilityThreshold).length;
     
     const closedCount = repWonDeals.length + repLostDeals.length;
     const winRate = closedCount > 0 ? Math.round((repWonDeals.length / closedCount) * 100) : 0;
@@ -84,7 +92,7 @@ export default function AnalyticsDashboard() {
       activeDealsCount,
       winRate
     };
-  }).sort((a, b) => b.wonValue - a.wonValue); // Sort by won value descending
+  }).sort((a, b) => b.wonValue - a.wonValue);
 
   const getInitials = (name: string) => {
     return name
@@ -101,6 +109,36 @@ export default function AnalyticsDashboard() {
         <div className={styles.titleArea}>
           <h2>Analytics & Funnel Performance</h2>
           <p>Real-time statistics, funnel conversion drop-offs, and sales team rankings.</p>
+        </div>
+      </div>
+
+      {/* Dynamic Forecast Slider */}
+      <div className="glass-panel" style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Filter size={14} />
+            AI Forecast Probability Filter
+          </span>
+          <span style={{ fontWeight: 700, color: 'var(--clr-cyan)', fontFamily: 'Outfit' }}>
+            Deals with Probability &ge; {probabilityThreshold}%
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <input 
+            type="range" 
+            min="0" 
+            max="90" 
+            step="10" 
+            value={probabilityThreshold}
+            onChange={(e) => setProbabilityThreshold(Number(e.target.value))}
+            style={{ flex: 1, height: '4px', cursor: 'pointer', accentColor: 'var(--clr-cyan)' }}
+          />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', minWidth: '40px', textAlign: 'right' }}>
+            {probabilityThreshold}%
+          </span>
+        </div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+          Adjust slider to exclude deals with lower success ratings. Recalculates funnel drop-offs and revenue pipelines instantly.
         </div>
       </div>
 
@@ -127,7 +165,7 @@ export default function AnalyticsDashboard() {
               ${avgDealSize.toLocaleString()}
             </div>
             <p className={styles.statSubtext}>
-              Across {allDealsCount} total registered deals
+              Across {allDealsCount} qualifying deals
             </p>
           </div>
         </div>
@@ -135,7 +173,7 @@ export default function AnalyticsDashboard() {
         {/* Total Pipeline */}
         <div className="glass-panel col-span-1 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className={styles.statCard}>
-            <span className={styles.statLabel}>Total Open Value</span>
+            <span className={styles.statLabel}>Open Pipeline Value</span>
             <div className={styles.statValue}>
               ${pipelineValue.toLocaleString()}
             </div>
@@ -165,7 +203,6 @@ export default function AnalyticsDashboard() {
                     className={styles.funnelBar}
                     style={{ 
                       width: `${stage.percent}%`,
-                      // Render a tapered effect: make lower parts of the funnel narrower/darker purple
                       background: `linear-gradient(90deg, var(--clr-blue) 0%, ${stage.color} 100%)`
                     }}
                   >
@@ -206,7 +243,7 @@ export default function AnalyticsDashboard() {
                     {rep.name}
                   </span>
                   <div className={styles.repStats}>
-                    <span>Active: <strong>{rep.activeDealsCount}</strong></span>
+                    <span>Active filtered: <strong>{rep.activeDealsCount}</strong></span>
                     <span>Win Rate: <strong>{rep.winRate}%</strong></span>
                   </div>
                 </div>
